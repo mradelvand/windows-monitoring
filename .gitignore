@@ -1,0 +1,19 @@
+# Secrets — NEVER commit these
+.env
+*.pem
+*.key
+*.crt
+
+# Terraform — contains your IP, passwords, and state
+terraform.tfvars
+terraform-azure/.terraform/
+terraform-azure/.terraform.lock.hcl
+terraform-azure/terraform.tfstate
+terraform-azure/terraform.tfstate.backup
+
+# OS junk
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
