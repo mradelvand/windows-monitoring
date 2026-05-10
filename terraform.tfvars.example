@@ -1,0 +1,11 @@
+# terraform.tfvars.example — copy to terraform.tfvars and fill in values
+# ⚠️  terraform.tfvars is in .gitignore — NEVER commit it (contains passwords)
+
+admin_ip               = "203.0.113.45"       # your IP: curl ifconfig.me
+windows_admin_password = "Str0ng!Pass#Here"   # 12+ chars, must have: Aa1!
+
+# Optional — override defaults if needed
+# resource_group_name  = "monitoring-stack-rg"
+# location             = "eastus"
+# vm_size_windows      = "Standard_B1s"
+# vm_size_linux        = "Standard_B1s"

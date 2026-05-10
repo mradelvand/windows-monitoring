@@ -1,0 +1,70 @@
+# ============================================================
+# alertmanager.yml — Alertmanager with Microsoft Teams routing
+#
+# HOW TO USE:
+#   1. Create a Teams Incoming Webhook (see blog post for steps)
+#   2. Replace TEAMS_WEBHOOK_URL below
+#   3. Copy to /etc/alertmanager/alertmanager.yml
+#   4. Run: systemctl restart alertmanager
+# ============================================================
+
+global:
+  # How long to wait before re-sending an alert that hasn't resolved
+  resolve_timeout: 5m
+
+# ── Routing tree ─────────────────────────────────────────────
+# Routing decides WHICH receiver gets WHICH alerts.
+route:
+  # Default: all alerts go to teams-alerts
+  receiver: "teams-alerts"
+
+  # Wait 30s to group similar alerts before sending (avoids alert floods)
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  # Group alerts by severity and server
+  group_by: ["severity", "instance"]
+
+  # Sub-routes: send critical alerts FASTER than warnings
+  routes:
+    - match:
+        severity: critical
+      receiver: "teams-critical"
+      group_wait: 10s       # critical alerts send faster
+      repeat_interval: 1h
+
+    - match:
+        severity: info
+      receiver: "teams-info"
+      repeat_interval: 24h  # info alerts don't repeat often
+
+# ── Receivers ────────────────────────────────────────────────
+receivers:
+  - name: "teams-alerts"
+    webhook_configs:
+      - url: "TEAMS_WEBHOOK_URL"   # ← replace with your Teams webhook URL
+        send_resolved: true
+        # When an alert RESOLVES (e.g. CPU goes back below threshold),
+        # Teams will get a "RESOLVED" notification
+
+  - name: "teams-critical"
+    webhook_configs:
+      - url: "TEAMS_WEBHOOK_URL"   # ← same URL, or use a different Teams channel
+        send_resolved: true
+
+  - name: "teams-info"
+    webhook_configs:
+      - url: "TEAMS_WEBHOOK_URL"
+        send_resolved: false   # don't spam Teams when info alerts resolve
+
+# ── Inhibition rules ─────────────────────────────────────────
+# Inhibition prevents redundant alerts.
+# Example: if the server is DOWN, suppress all other alerts from it
+# (no point alerting "high CPU" if the server is already down)
+inhibit_rules:
+  - source_match:
+      alertname: "WindowsServerDown"
+    target_match_re:
+      alertname: ".+"   # suppress ALL other alerts
+    equal: ["instance"]

@@ -1,0 +1,48 @@
+# ============================================================
+# prometheus.yml — Prometheus config for Windows/IIS monitoring
+#
+# HOW TO USE:
+#   1. Replace WINDOWS_IIS_PRIVATE_IP with your Windows VM private IP
+#   2. Copy to /etc/prometheus/prometheus.yml on the Prometheus server
+#   3. Run: promtool check config /etc/prometheus/prometheus.yml
+#   4. Run: systemctl restart prometheus
+# ============================================================
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+  external_labels:
+    environment: "windows-enterprise-test"
+    project:     "windows-monitoring-stack"
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Alertmanager connection (install separately on same VM or different VM)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["localhost:9093"]
+
+scrape_configs:
+
+  # Prometheus monitors itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Windows IIS server metrics (pushed by Alloy via remote_write)
+  # NOTE: with remote_write (push model), you DON'T need a scrape job here.
+  # Alloy pushes metrics TO Prometheus. This job is optional — only needed
+  # if you want Prometheus to also PULL from the Windows server directly.
+  # We include it commented out for reference:
+  #
+  # - job_name: "windows-iis-direct"
+  #   static_configs:
+  #     - targets: ["WINDOWS_IIS_PRIVATE_IP:9182"]
+  #
+  # The remote_write approach (what Alloy uses) is preferred because:
+  # 1. Windows NSG doesn't need to allow inbound from Prometheus
+  # 2. Works across restrictive firewalls
+  # 3. Alloy buffers metrics locally if Prometheus is temporarily down

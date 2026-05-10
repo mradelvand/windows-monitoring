@@ -1,0 +1,129 @@
+# ============================================================
+# alert-rules-windows.yml — Windows/IIS Prometheus Alert Rules
+#
+# HOW TO USE:
+#   1. Copy to /etc/prometheus/rules/alert-rules-windows.yml
+#   2. Run: promtool check rules /etc/prometheus/rules/alert-rules-windows.yml
+#   3. Run: systemctl restart prometheus
+# ============================================================
+
+groups:
+  - name: windows_system
+    rules:
+
+      # IIS server stopped responding entirely
+      - alert: WindowsServerDown
+        expr: up{job="windows-iis-metrics"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          platform: windows
+        annotations:
+          summary: "Windows server {{ $labels.instance }} is DOWN"
+          description: "Alloy on {{ $labels.instance }} has not pushed metrics for 2+ minutes. Server may be offline."
+
+      # CPU too high
+      - alert: WindowsHighCPU
+        expr: |
+          100 - (avg by (instance) (
+            rate(windows_cpu_time_total{mode="idle"}[5m])
+          ) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          platform: windows
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU at {{ $value | humanize }}% for 5+ minutes (threshold: 85%)"
+
+      # Low available memory
+      - alert: WindowsLowMemory
+        expr: |
+          100 * windows_memory_available_bytes
+            / windows_cs_physical_memory_bytes < 10
+        for: 5m
+        labels:
+          severity: warning
+          platform: windows
+        annotations:
+          summary: "Low memory on {{ $labels.instance }}"
+          description: "Only {{ $value | humanize }}% RAM available"
+
+      # Disk almost full
+      - alert: WindowsDiskAlmostFull
+        expr: |
+          100 * (1 - (
+            windows_logical_disk_free_bytes{volume="C:"}
+            / windows_logical_disk_size_bytes{volume="C:"}
+          )) > 85
+        for: 10m
+        labels:
+          severity: warning
+          platform: windows
+        annotations:
+          summary: "C: drive filling up on {{ $labels.instance }}"
+          description: "C: drive is {{ $value | humanize }}% full (threshold: 85%)"
+
+      # Server rebooted (useful for change tracking)
+      - alert: WindowsServerRebooted
+        expr: |
+          (time() - windows_system_boot_time_timestamp_seconds) < 600
+        for: 0m
+        labels:
+          severity: info
+          platform: windows
+        annotations:
+          summary: "Server {{ $labels.instance }} rebooted"
+          description: "Server rebooted less than 10 minutes ago"
+
+  - name: iis_alerts
+    rules:
+
+      # IIS service stopped
+      - alert: IISServiceDown
+        expr: |
+          windows_service_state{name="w3svc", state="running"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          platform: windows
+        annotations:
+          summary: "IIS (W3SVC) service stopped on {{ $labels.instance }}"
+          description: "The IIS World Wide Web Publishing Service is not running"
+
+      # High IIS error rate (5xx responses)
+      - alert: IISHighErrorRate
+        expr: |
+          rate(windows_iis_requests_total{http_method!="",status_code=~"5.."}[5m])
+          / rate(windows_iis_requests_total{http_method!=""}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          platform: windows
+        annotations:
+          summary: "High 5xx error rate on IIS {{ $labels.instance }}"
+          description: "{{ $value | humanizePercentage }} of IIS requests are returning 5xx errors"
+
+      # No requests hitting IIS (could mean load balancer routing issue)
+      - alert: IISNoTraffic
+        expr: |
+          rate(windows_iis_requests_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          platform: windows
+        annotations:
+          summary: "No IIS traffic on {{ $labels.instance }}"
+          description: "IIS has received zero requests in the last 10 minutes"
+
+      # WAS service stopped (IIS depends on this)
+      - alert: WASServiceDown
+        expr: |
+          windows_service_state{name="was", state="running"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          platform: windows
+        annotations:
+          summary: "WAS service stopped on {{ $labels.instance }}"
+          description: "Windows Process Activation Service (WAS) is not running. IIS will fail."
