@@ -20,9 +20,14 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
-  # Credentials come from: az login  OR  environment variables
-  # ARM_SUBSCRIPTION_ID, ARM_CLIENT_ID, ARM_CLIENT_SECRET, ARM_TENANT_ID
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+      # This allows terraform destroy to delete the resource group even if
+      # Azure still shows nested resources (like orphaned VNets from failed applies).
+      # Without this, destroy fails when partial resources exist from broken runs.
+    }
+  }
 }
 
 # ── Resource Group ───────────────────────────────────────────
