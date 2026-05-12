@@ -279,12 +279,22 @@ resource "azurerm_network_security_group" "grafana_nsg" {
 
 # ─────────────────────────────────────────────────────────────
 # Public IPs
+#
+# COST STRATEGY:
+#   Windows IIS → Static Standard  ($0.005/hr = ~$3.65/month)
+#     Reason: RDP sessions break if the IP changes. Worth paying for.
+#
+#   Linux VMs (Prometheus, Loki, Grafana) → Dynamic Standard
+#     Dynamic IPs are cheaper ($0.004/hr when running, $0 when deallocated).
+#     Since we stop these VMs after each session, their IPs change on restart.
+#     That's fine — just re-run: terraform output   to get the new IPs.
+#     We use private IPs for all inter-service communication anyway.
 # ─────────────────────────────────────────────────────────────
 resource "azurerm_public_ip" "iis_pip" {
   name                = "iis-public-ip"
   resource_group_name = azurerm_resource_group.monitoring.name
   location            = azurerm_resource_group.monitoring.location
-  allocation_method   = "Static"
+  allocation_method   = "Static"    # Static — RDP needs a stable IP
   sku                 = "Standard"
 }
 
@@ -292,24 +302,24 @@ resource "azurerm_public_ip" "prometheus_pip" {
   name                = "prometheus-public-ip"
   resource_group_name = azurerm_resource_group.monitoring.name
   location            = azurerm_resource_group.monitoring.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
+  allocation_method   = "Dynamic"   # Dynamic — $0 when VM is stopped
+  sku                 = "Basic"     # Basic SKU supports Dynamic. Standard SKU requires Static.
 }
 
 resource "azurerm_public_ip" "loki_pip" {
   name                = "loki-public-ip"
   resource_group_name = azurerm_resource_group.monitoring.name
   location            = azurerm_resource_group.monitoring.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
+  allocation_method   = "Dynamic"   # Dynamic — $0 when VM is stopped
+  sku                 = "Basic"     # Basic SKU supports Dynamic. Standard SKU requires Static.
 }
 
 resource "azurerm_public_ip" "grafana_pip" {
   name                = "grafana-public-ip"
   resource_group_name = azurerm_resource_group.monitoring.name
   location            = azurerm_resource_group.monitoring.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
+  allocation_method   = "Dynamic"   # Dynamic — $0 when VM is stopped
+  sku                 = "Basic"     # Basic SKU supports Dynamic. Standard SKU requires Static.
 }
 
 # ─────────────────────────────────────────────────────────────

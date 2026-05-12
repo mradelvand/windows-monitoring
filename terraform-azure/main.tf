@@ -63,8 +63,11 @@ resource "azurerm_windows_virtual_machine" "iis_server" {
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"  # Standard storage = cheaper
-    disk_size_gb         = 128
+    storage_account_type = "Standard_LRS"
+    disk_size_gb         = 127
+    # 64GB = closest to the Azure free-tier P6 SSD limit.
+    # 128GB was the original default — costs ~$5.89/month extra. 64GB saves that.
+    # Windows Server 2022 uses ~15-20GB. 64GB gives plenty of headroom for testing.
   }
 
   # Windows Server 2022 Datacenter — most recent LTS release
