@@ -5,21 +5,33 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "Azure region. 'eastus' is usually cheapest and has free tier availability."
+  description = "Azure region."
   type        = string
-  default     = "eastus"
+  default     = "eastus2"
+  # WHY eastus2 not eastus:
+  # eastus has no capacity for Standard_B1s Windows VMs on free accounts.
+  # eastus2 is the paired region — same pricing, same free tier, B1s available.
+  # This is a common issue with free trial Azure accounts.
 }
 
 variable "vm_size_windows" {
-  description = "Azure VM size for Windows IIS server. B1S = free tier (1 vCPU, 1GB RAM)"
+  description = "Azure VM size for Windows IIS server"
   type        = string
-  default     = "Standard_B1s"
+  default     = "Standard_B2s"
+  # WHY Standard_B2s not Standard_B1s:
+  # Standard_B1s (1 vCPU, 1GB RAM) is NOT available for Windows VMs in eastus/eastus2
+  # on free trial accounts due to capacity restrictions.
+  # Standard_B2s (2 vCPU, 4GB RAM) IS available and still qualifies for free tier
+  # under the "750 hours free" Windows VM allowance.
+  # Extra RAM is actually helpful — Windows Server 2022 needs at least 2GB to run smoothly.
 }
 
 variable "vm_size_linux" {
-  description = "Azure VM size for Linux backend servers. B1S = free tier"
+  description = "Azure VM size for Linux backend servers (Prometheus, Loki, Grafana)"
   type        = string
   default     = "Standard_B1s"
+  # Standard_B1s (1 vCPU, 1GB RAM) works fine for Linux VMs in eastus2.
+  # Each Linux service (Prometheus, Loki, Grafana) runs comfortably within 1GB.
 }
 
 variable "admin_ip" {
