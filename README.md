@@ -1,4 +1,4 @@
-# 🪟 Enterprise Windows/IIS Observability Stack
+#  Enterprise Windows/IIS Observability Stack
 
 > **Prometheus · Grafana · Loki · Grafana Alloy** — Windows Server + IIS on Azure
 
@@ -12,7 +12,7 @@ environments — designed as a viable open-source replacement for PRTG in enterp
 
 ---
 
-## 🏗️ Architecture (matches your SVG design)
+##  Architecture (matches your SVG design)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -62,7 +62,7 @@ environments — designed as a viable open-source replacement for PRTG in enterp
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 🔑 Key Design Decisions
+##  Key Design Decisions
 
 | Decision | Why |
 |---|---|
@@ -110,7 +110,7 @@ windows-monitoring/
 └── .env.example
 ```
 
-## 🚀 Deployment Order
+##  Deployment Order
 
 1. **Terraform** → creates Azure VNet, NSGs, and all VMs
 2. **Linux backend** → Prometheus → Loki → Grafana (via SSH + scripts)
